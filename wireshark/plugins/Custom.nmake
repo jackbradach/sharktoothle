@@ -1,0 +1,32 @@
+#
+# $Id$
+#
+
+include ..\config.nmake
+
+all: nordic_ble
+
+nordic_ble:: 
+	cd nordic_ble
+	$(MAKE) /$(MAKEFLAGS) -f Makefile.nmake
+	cd ..
+
+clean:
+	cd nordic_ble
+	$(MAKE) /$(MAKEFLAGS) -f Makefile.nmake clean
+	cd ..
+
+distclean: clean
+	cd nordic_ble
+	$(MAKE) /$(MAKEFLAGS) -f Makefile.nmake distclean
+	cd ..
+
+maintainer-clean: distclean
+	cd nordic_ble
+	$(MAKE) /$(MAKEFLAGS) -f Makefile.nmake maintainer-clean
+	cd ..
+
+install-plugins:
+!IFDEF ENABLE_LIBWIRESHARK
+	xcopy nordic_ble\*.dll ..\$(INSTALL_DIR)\plugins\$(VERSION) /d
+!ENDIF
