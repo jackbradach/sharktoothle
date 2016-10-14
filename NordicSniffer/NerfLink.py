@@ -1,9 +1,16 @@
 # Sets up the data link to the nRF52 sniffer device.
-
+import io
 from twisted.internet import reactor
 from twisted.internet.serialport import SerialPort
 from twisted.protocols import basic
+
 from enum import IntEnum
+
+import sys
+from twisted.logger import globalLogBeginner, Logger
+from twisted.logger import jsonFileLogObserver, textFileLogObserver
+from twisted.logger import Logger
+from zope.interface import provider
 
 from NordicSniffer import *
 from NordicUartPacket import *
@@ -12,21 +19,78 @@ from NordicSnifferPacket import *
 from BleLinkLayerPacket import *
 from PacketBuffer import *
 
+import urwid
+from urwid import Columns, Filler, Pile, BoxAdapter, LineBox, AttrWrap, Text, Padding
+from PacketWidgets import *
+
 # TODO - packet classes should do nothing with the hardware.
 # Move packet buffer to upper level class.
 
 # TODO - add allbacks for packet received vs integrate more with Twister?
 # TODO: Iterable on decoded packets!
 
-class NerfLink():
-    cnt = 0
+# packet flow widgets, showing simply eye candy for "packets are flowing", eg a
+# 1 pixel/packet/s (maybe vary intensity?).  Scale the time base to look interesting
+# (shoot for portal 2 endindg music scnene with the data packet window flowing back and forth)
+#
+#  Another view should show pkt/s vs seconds in a bargraph histogram.
+#
+#  Track packets (req/resp)
+#  decode gatt and save examples
+#  allow dummy data to light up the dials
+#
 
+
+
+
+class NerfLink():
+    palette = [
+        ('header', 'white', 'light blue', 'standout'),
+        ('body', 'light green', 'dark gray'),
+        ('packet_header', 'light cyan', 'dark blue'),
+        ('packet', 'white', 'dark cyan')
+    ]
     def __init__(self, port='/dev/ttyUSB0'):
+        #globalLogBeginner.beginLoggingTo([jsonFileLogObserver(sys.stdout)])
+        globalLogBeginner.beginLoggingTo([textFileLogObserver(sys.stdout)])
+        self.log = Logger(namespace="NerfLink")
+        self.cnt = 0
         self.port = port
-        self._sniffer = NordicSniffer(port)
+        self._sniffer = NordicSniffer(port=port, callback=self.interact)
+        self.setup_screen()
+
+    def setup_screen(self):
+        text_header = (u"Nerf FiddyTwo")
+        header = AttrWrap(Text(text_header), 'header')
+        self.pktlist = PacketFrame()
+        pktlist = BoxAdapter(AttrWrap(self.pktlist, 'packet'), 20)
+        pktlist = Padding(LineBox(pktlist, title="UART Packets"), align='center', left=2, right=2)
+        buttons = Padding(ButtonPanel(), align='center', left=2)
+        pile = Pile([header, Columns([(16, BoxAdapter(Filler(buttons, valign='middle'),20)), pktlist])])
+        top = Filler(pile, valign='top')
+
+        self.evl = urwid.TwistedEventLoop()
+        self.loop = urwid.MainLoop(top, self.palette,
+                      unhandled_input=self.unhandled_input, event_loop=self.evl)
+
+    def update_screen(self, loop, data):
+        pl = self.pktlist
+
+        for pkt in self._sniffer.pbuf:
+            self.cnt = self.cnt + 1
+            pl.append(pkt)
+
+        loop.set_alarm_in(1/30, self.update_screen)
 
     def run(self):
-        self._sniffer.run()
+        self.loop.set_alarm_in(1/60, self.update_screen)
+        self.loop.run()
+
+    def unhandled_input(self, key):
+        if key in ('q', 'Q'):
+            raise urwid.ExitMainLoop()
+    #    print("Key: {}".format(key))
+        return True
 
     @property
     def port(self):
@@ -37,37 +101,15 @@ class NerfLink():
         # TODO: test if port exists?
         self._port = port_path
 
-    def dataReceived(self, data):
-        self.pbuf.add(data)
+    def interact(self):
+        sniffer = self._sniffer
+        c = scr.getch()
+        self._win.addstr(0, 0, "meh", curses.A_BOLD)
+        self._win.refresh()
+        if c != -1:
+            scr.addstr(str(c) + ' ')
 
-        for pkt in self.pbuf:
-        #    print("packet #{}: {}".format(self.cnt, pkt))
-            self.cnt = self.cnt + 1
-            if (pkt is None):
-                raise RuntimeError("Got a None packet?")
-            print("UART: {}".format(pkt))
-            if pkt.id_name=='EVENT_PACKET':
-                sniff = NordicSnifferPacket(pkt.payload)
-                if (sniff is None):
-                    raise RuntimeError("Got a none event?")
-                print("SNIFF: {}".format(sniff))
-
-                ble_ll = BleLinkLayerPacket(sniff.payload)
-                print("BLE_LL: {}".format(ble_ll))
-
-        #packets = self.pbuf.get()
-
-        if (self.cnt >= 30):
-            reactor.stop()
-        #for uart_pkt in self.ns.get():
-        #    print(uart_pkt)
-        #    if (uart_pkt.getId() == NordicUartPacketIds.EVENT_PACKET):
-        #        sniff_pkt = NordicSnifferPacket(uart_pkt.getPayload())
-        #        ble_ll_pkt = BleLinkLayerPacket(sniff_pkt.getPayload())
-        #        print(sniff_pkt)
-        #        print(ble_ll_pkt)
-        #
-        #    print("---")
+            scr.refresh()
 
 if __name__ == "__main__":
     nl = NerfLink('/dev/ttyUSB0')

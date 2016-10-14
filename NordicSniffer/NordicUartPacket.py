@@ -1,5 +1,6 @@
 from enum import IntEnum
 from NordicSnifferPacket import NordicSnifferPacket
+import struct
 
 class NordicUartPacketIds(IntEnum):
     REQ_FOLLOW = 0x00
@@ -33,12 +34,16 @@ class NordicUartPacket:
             self._payload = bytearray()
             self._hlen = NordicUartPacket.HLEN_DEFAULT
             self._protover = NordicUartPacket.PROTOVER_DEFAULT
+            self._count = 0
         else:
             self._data = bytearray(data)
             self._hlen = data[NordicUartPacket.HLEN_OFFSET]
             self.id = data[NordicUartPacket.ID_OFFSET]
             self._payload = data[self.hlen:]
             self._protover = data[NordicUartPacket.PVER_OFFSET]
+            pc_offset = NordicUartPacket.PC_OFFSET
+            raw_pc = self._data[pc_offset:pc_offset+2]
+            self._count = int.from_bytes(raw_pc, byteorder='little')
 
     def __repr__(self):
         return "NordicUartPacket({})".format(self.data)
@@ -76,21 +81,17 @@ class NordicUartPacket:
 
     @property
     def payload(self):
-        payload = self.data[self.hlen:]
-        return payload
+        return self._payload
 
     @payload.setter
     def payload(self, data):
-        self._payload = payload
-        self._plen = len(payload)
+        self._payload = data
+        self._plen = len(data)
 
     @property
     def pc(self):
         "packet count"
-        pc_offset = NordicUartPacket.PC_OFFSET
-        raw_pc = self.data[pc_offset:pc_offset+2]
-        count = int.from_bytes(raw_pc, byteorder='little')
-        return count
+        return self._count
 
     @property
     def plen(self):
@@ -104,4 +105,10 @@ class NordicUartPacket:
 
     @property
     def data(self):
+        pkt = bytearray([self.hlen] +
+                        [self.plen] +
+                        [self.protover])
+        pkt.extend(struct.pack("1H", self.pc))
+        pkt.extend(self.payload)
+
         return self._data

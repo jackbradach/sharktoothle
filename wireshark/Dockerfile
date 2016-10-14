@@ -33,4 +33,4 @@ ADD plugins /usr/src/wireshark/plugins
 WORKDIR /tmp
 RUN wget https://bootstrap.pypa.io/get-pip.py
 RUN python3 get-pip.py
-RUN pip3 install twisted pyserial
+RUN pip3 install twisted pyserial urwid

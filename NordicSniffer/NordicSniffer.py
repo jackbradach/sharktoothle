@@ -1,8 +1,7 @@
-
-from twisted.internet import reactor
+from twisted.internet import reactor, task
 from twisted.internet.serialport import SerialPort
 from twisted.protocols import basic
-
+from twisted.logger import Logger
 from NordicUartPacket import *
 from NordicSlipPacket import NordicSlipPacket
 from NordicSnifferPacket import *
@@ -12,7 +11,7 @@ from PacketBuffer import *
 class NordicSniffer(basic.LineReceiver):
     # Default port is USB0, add detect and reconnect?  Twisted
     # may handle that.
-    def __init__(self, port="/dev/ttyUSB0", baud=460800):
+    def __init__(self, port="/dev/ttyUSB0", baud=460800, callback=None):
         self.setRawMode()
         self._seq_id = None
         self._serial_buffer = bytearray()
@@ -20,8 +19,9 @@ class NordicSniffer(basic.LineReceiver):
         self._pbuf = PacketBuffer()
         self.port = port
         self.baud = baud
-
-        pass
+        self._log = Logger(namespace="NordicSniffer")
+        self._loop = task.LoopingCall(callback)
+        SerialPort(self, self.port, reactor, baudrate=460800)
 
     def __repr__(self):
         return "NordicSniffer({})".format(self._port)
@@ -30,15 +30,13 @@ class NordicSniffer(basic.LineReceiver):
         str_repr = ("<NordicSniffer; " +
                     "port={}>".format(self._port))
 
-    def run(self):
-        SerialPort(self, self.port, reactor, baudrate=460800)
-        reactor.run()
 
     def stop(self):
         reactor.stop()
 
     # TODO - implement as Twisted deferred? (so it can catch the reply)
     def send_ping(self):
+        self._log.debug("ping!")
         pass
 
     def send_pkt(self, packet):
@@ -48,9 +46,8 @@ class NordicSniffer(basic.LineReceiver):
         pkt = NordicUartPacket()
         pkt.id = NordicUartPacketIds.REQ_SCAN_CONT
         pkt.payload = []
-
-
-
+        self._log.debug("SCAN!")
+        reactor.callFromThread(self.send_ping)
         pass
 
     @property
@@ -88,11 +85,16 @@ class NordicSniffer(basic.LineReceiver):
     # TODO - the API dropping them somewhere.
     @seq_id.setter
     def seq_id(self, new_seq_id):
+        log = self._log
         if self.seq_id is not None:
             if new_seq_id != (self.seq_id + 1):
                 exp_seq = self.seq_id + 1
-                print("Dropped packet(s) #{}-{}".format(exp_seq, new_seq_id-1))
+                log.debug("Dropped packet(s) #{}-{}".format(exp_seq, new_seq_id-1))
         self._seq_id = new_seq_id
+
+    @property
+    def pbuf(self):
+        return self._pbuf
 
     # Callbacks for Twisted
     def connected(self):
@@ -103,6 +105,3 @@ class NordicSniffer(basic.LineReceiver):
 
     def rawDataReceived(self, recv_data):
         new_pkt_count = self._pbuf.add(recv_data)
-        for pkt in self._pbuf:
-            self.seq_id = pkt.pc
-            print("recv_data: {}".format(pkt))
