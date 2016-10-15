@@ -22,6 +22,8 @@ from PacketBuffer import *
 import urwid
 from urwid import Columns, Filler, Pile, BoxAdapter, LineBox, AttrWrap, Text, Padding
 from PacketWidgets import *
+from pcapng import *
+
 
 # TODO - packet classes should do nothing with the hardware.
 # Move packet buffer to upper level class.
@@ -78,9 +80,28 @@ class NerfLink():
 
         for pkt in self._sniffer.pbuf:
             self.cnt = self.cnt + 1
-            pl.append(pkt)
+        #    pl.append(pkt)
+            #pc = SectionHeaderBlock(5, 3, pkt.data)
+            #print("len {:d}, {}".format(len(pc[:]), pc[:]))
 
-        loop.set_alarm_in(1/30, self.update_screen)
+
+
+    #    shb.options.add(OptionComment("ABC"))
+        #            .add(OptionComment("More Comments!"))
+        #            .add(OptionComment("So many comments.")))
+    #    print("options: {}".format(shb.options.as_bytearray))
+        idb = InterfaceDescriptionBlock(LINKTYPE_BLUETOOTH_LE_LL)
+        shb = SectionHeaderBlock(idb)
+        shb.options.add(OptionComment("Blargh"))
+        print("shb: {}".format(shb.as_bytearray))
+
+    #    print("idb: {}".format(idb.as_bytearray))
+
+        with open('test.pcap', 'wb') as f:
+            f.write(shb.as_bytearray)
+            f.write(idb.as_bytearray)
+
+        loop.set_alarm_in(10, self.update_screen)
 
     def run(self):
         self.loop.set_alarm_in(1/60, self.update_screen)
