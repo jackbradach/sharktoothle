@@ -23,7 +23,7 @@ import urwid
 from urwid import Columns, Filler, Pile, BoxAdapter, LineBox, AttrWrap, Text, Padding
 from PacketWidgets import *
 from pcapng import *
-
+import pcapng
 
 # TODO - packet classes should do nothing with the hardware.
 # Move packet buffer to upper level class.
@@ -78,28 +78,33 @@ class NerfLink():
     def update_screen(self, loop, data):
         pl = self.pktlist
 
+        epbs = bytearray()
         for pkt in self._sniffer.pbuf:
             self.cnt = self.cnt + 1
+            epbs.extend(EnhancedPacketBlock(pkt.data).as_bytearray)
         #    pl.append(pkt)
             #pc = SectionHeaderBlock(5, 3, pkt.data)
             #print("len {:d}, {}".format(len(pc[:]), pc[:]))
 
-
-
-    #    shb.options.add(OptionComment("ABC"))
-        #            .add(OptionComment("More Comments!"))
-        #            .add(OptionComment("So many comments.")))
-    #    print("options: {}".format(shb.options.as_bytearray))
         idb = InterfaceDescriptionBlock(LINKTYPE_BLUETOOTH_LE_LL)
+        idb.options.add([
+            Option(OptionCode.IF_NAME, "ttyUSB0"),
+            Option(OptionCode.IF_DESCRIPTION, "Nordic BLE Sniffer Firmware"),
+
+            ])
         shb = SectionHeaderBlock(idb)
-        shb.options.add(OptionComment("Blargh"))
-        print("shb: {}".format(shb.as_bytearray))
+        shb.options.add(Option(pcapng.SHB_OPTION_HARDWARE, "Nordic NRF52 Bluetooth LE Sniffer"))
+        shb.options.add(Option(pcapng.SHB_OPTION_OS, "Linux"))
+        shb.options.add(Option(pcapng.SHB_OPTION_USERAPPL, "SharkToothLE"))
+
+    #    print("shb: {}".format(shb.as_bytearray))
 
     #    print("idb: {}".format(idb.as_bytearray))
 
-        with open('test.pcap', 'wb') as f:
+        with open('test.pcapng', 'wb') as f:
             f.write(shb.as_bytearray)
             f.write(idb.as_bytearray)
+            f.write(epbs)
 
         loop.set_alarm_in(10, self.update_screen)
 
