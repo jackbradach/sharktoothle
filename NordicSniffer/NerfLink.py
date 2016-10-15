@@ -60,6 +60,7 @@ class NerfLink():
         self.port = port
         self._sniffer = NordicSniffer(port=port, callback=self.interact)
         self.setup_screen()
+        self.setup_sniffer()
 
     def setup_screen(self):
         text_header = (u"Nerf FiddyTwo")
@@ -75,38 +76,30 @@ class NerfLink():
         self.loop = urwid.MainLoop(top, self.palette,
                       unhandled_input=self.unhandled_input, event_loop=self.evl)
 
+    def setup_sniffer(self):
+        p = Section(linktype=LINKTYPE_BLUETOOTH_LE_LL)
+        p.shb.options.add([
+            Option(pcapng.SHB_OPTION_HARDWARE, "Nordic NRF52 Bluetooth LE Sniffer"),
+            Option(pcapng.SHB_OPTION_OS, "Linux"),
+            Option(pcapng.SHB_OPTION_USERAPPL, "SharkToothLE")
+            ])
+        p.idb.options.add([
+            Option(OptionCode.IF_NAME, "ttyUSB0"),
+            Option(OptionCode.IF_DESCRIPTION, "Nordic BLE Sniffer Firmware")
+            ])
+        self._pktsec = p
+
     def update_screen(self, loop, data):
         pl = self.pktlist
 
-        epbs = bytearray()
         for pkt in self._sniffer.pbuf:
             self.cnt = self.cnt + 1
-            epbs.extend(EnhancedPacketBlock(pkt.data).as_bytearray)
-        #    pl.append(pkt)
-            #pc = SectionHeaderBlock(5, 3, pkt.data)
-            #print("len {:d}, {}".format(len(pc[:]), pc[:]))
-
-        idb = InterfaceDescriptionBlock(LINKTYPE_BLUETOOTH_LE_LL)
-        idb.options.add([
-            Option(OptionCode.IF_NAME, "ttyUSB0"),
-            Option(OptionCode.IF_DESCRIPTION, "Nordic BLE Sniffer Firmware"),
-
-            ])
-        shb = SectionHeaderBlock(idb)
-        shb.options.add(Option(pcapng.SHB_OPTION_HARDWARE, "Nordic NRF52 Bluetooth LE Sniffer"))
-        shb.options.add(Option(pcapng.SHB_OPTION_OS, "Linux"))
-        shb.options.add(Option(pcapng.SHB_OPTION_USERAPPL, "SharkToothLE"))
-
-    #    print("shb: {}".format(shb.as_bytearray))
-
-    #    print("idb: {}".format(idb.as_bytearray))
+            self._pktsec.add_packet(EnhancedPacketBlock(pkt.data))
 
         with open('test.pcapng', 'wb') as f:
-            f.write(shb.as_bytearray)
-            f.write(idb.as_bytearray)
-            f.write(epbs)
+            f.write(self._pktsec.as_bytearray)
 
-        loop.set_alarm_in(10, self.update_screen)
+        #loop.set_alarm_in(1/30, self.update_screen)
 
     def run(self):
         self.loop.set_alarm_in(1/60, self.update_screen)

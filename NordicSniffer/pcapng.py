@@ -55,16 +55,11 @@ def pad_to_width(data, width=4):
 # +-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+
 class Block:
 
-    def __init__(self, block_body, align=4):
-    #    self._block_type = block_type
-        self._update(block_body, align)
+    def __init__(self, body=bytearray()):
+        self._body = body
 
     def __getitem__(self, item):
         return self._data[item]
-
-    def _update(self, new_body, align):
-        bt = self._block_type.to_bytes(align, byteorder='little')
-        self.body = new_body
 
     @property
     def block_type(self):
@@ -103,15 +98,14 @@ class SectionHeaderBlock(Block):
     _block_type = BlockType.SHB
     _bom = 0x1A2B3C4D
 
-    def __init__(self, data_block=None, majver=1, minver=0):
-        if data_block:
-            self._section_length = pack('@q', len(data_block.as_bytearray))
-        else:
-            self._section_length = pack('@q', 0)
+    def __init__(self, majver=1, minver=0):
+        self._section_length = -1
         self._majver = majver
         self._minver = minver
         self._options = OptionList()
-        super().__init__(b'')
+
+    def add_opt(self, opt):
+        self._options.add(opt)
 
     @property
     def options(self):
@@ -130,7 +124,7 @@ class SectionHeaderBlock(Block):
         bom = pack("@I", self._bom)
         majver = pack("@H", self._majver)
         minver = pack("@H", self._minver)
-        seclen = self._section_length
+        seclen = pack("@q", self._section_length)
         options = self._options.as_bytearray
 
         self._body = bytearray(bom + majver + minver + seclen + options)
@@ -342,3 +336,49 @@ class OptionEnd(Option):
     You probably don't have a good reason to instantiate it directly."""
     def __init__(self):
         super().__init__(code=0, value="")
+
+# p = Packetizer()
+# p.add(Packet)
+# p.write(<filename>)
+# p.flush(<stream>) ?
+class Section:
+    def __init__(self, linktype):
+        self._pkts = []
+        self._shb = SectionHeaderBlock()
+        self._idb = InterfaceDescriptionBlock(linktype)
+        self._dropcount = 0
+
+    def add_packet(self, packet):
+        self._pkts.append(packet)
+
+    @property
+    def dropcount(self):
+        return self._dropcount
+
+    @dropcount.setter
+    def dropcount(self, cnt):
+        self._dropcount = cnt
+
+    @property
+    def shb(self):
+        return self._shb
+
+    @property
+    def idb(self):
+        return self._idb
+
+    @property
+    def pkts(self):
+        return self._pkts
+
+    @property
+    def as_bytearray(self):
+        shb = self._shb.as_bytearray
+        idb = self._idb.as_bytearray
+        pkts = bytearray()
+        for pkt in self._pkts:
+            pkts.extend(pkt.as_bytearray)
+        return (shb + idb + pkts)
+
+def create_epb(packet, iface_id=0):
+    epb = EnhancedPacketBlock(packet.data, timestamp=packet.timestamp, iface_id=iface_id)
