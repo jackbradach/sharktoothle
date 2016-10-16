@@ -13,8 +13,7 @@ from twisted.logger import Logger
 from zope.interface import provider
 
 import packets
-from NordicSniffer import *
-from PacketBuffer import *
+from sniffer import NordicSniffer, PacketBuffer
 
 import urwid
 from urwid import Columns, Filler, Pile, BoxAdapter, LineBox, AttrWrap, Text, Padding
@@ -60,13 +59,13 @@ class NerfLink():
         self.setup_sniffer()
 
     def setup_screen(self):
-        text_header = (u"Nerf FiddyTwo")
+        text_header = (u"SharkToothLE")
         header = AttrWrap(Text(text_header), 'header')
         self.pktlist = PacketFrame()
         pktlist = BoxAdapter(AttrWrap(self.pktlist, 'packet'), 20)
         pktlist = Padding(LineBox(pktlist, title="UART Packets"), align='center', left=2, right=2)
         buttons = Padding(ButtonPanel(), align='center', left=2)
-        pile = Pile([header, Columns([(16, BoxAdapter(Filler(buttons, valign='middle'),20)), pktlist])])
+        pile = Pile([header, Columns([(16, BoxAdapter(Filler(buttons, valign='middle'), 20)), pktlist])])
         top = Filler(pile, valign='top')
 
         self.evl = urwid.TwistedEventLoop()

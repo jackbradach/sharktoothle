@@ -204,16 +204,15 @@ class UartPacket(Packet):
     HLEN_DEFAULT = 6
     PROTOVER_DEFAULT = 1
 
-    def __init__(self, data=None):
+    def __init__(self, data=None, timestamp=int(time())):
         # TODO - validate the packet!
+        super().__init__(data, timestamp)
         if data is None:
-            self._data = bytearray()
             self._payload = bytearray()
             self._hlen = UartPacket.HLEN_DEFAULT
             self._protover = UartPacket.PROTOVER_DEFAULT
             self._count = 0
         else:
-            self._data = bytearray(data)
             self._hlen = data[UartPacket.HLEN_OFFSET]
             self.id = data[UartPacket.ID_OFFSET]
             self._payload = data[self.hlen:]
@@ -221,9 +220,6 @@ class UartPacket(Packet):
             pc_offset = UartPacket.PC_OFFSET
             raw_pc = self._data[pc_offset:pc_offset+2]
             self._count = int.from_bytes(raw_pc, byteorder='little')
-
-    def __repr__(self):
-        return "UartPacket({})".format(self.data)
 
     def __str__(self):
         packet_id = self.id

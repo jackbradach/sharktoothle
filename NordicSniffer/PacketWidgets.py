@@ -45,6 +45,7 @@ class UartPacketRow(Columns):
     @classmethod
     def get_header(cls):
         cols = [
+            (24, Text(u"Timestamp")),
             (16, Text(u"Packet #")),
             (16, Text(u"Packet ID")),
             (16, Text(u"Payload Length"))
@@ -56,6 +57,7 @@ class UartPacketRow(Columns):
             raise ValueError(u"{} doesn't derive from UartPacket!".format(type(pkt)))
 
         cols = [
+            (24, Text(u"{:d}".format(pkt.timestamp))),
             (16, Text(u"{:d}".format(pkt.pc))),
             (16, Text(u"{:s}".format(pkt.id.name))),
             (16, Text(u"{:d} bytes".format(pkt.plen)))
