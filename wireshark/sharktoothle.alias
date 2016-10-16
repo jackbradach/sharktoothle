@@ -1,0 +1,10 @@
+alias sharktoothle=\
+'docker run -it --rm \
+ --net host \
+ --ipc host \
+ --volume=/tmp/.X11-unix:/tmp/.X11-unix \
+ --volume=${PWD}:/data \
+ --device=/dev/dri:/dev/dri \
+ --device=/dev/ttyUSB0:/dev/ttyUSB0 \
+ --env="DISPLAY" \
+ sharktoothle'
