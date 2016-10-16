@@ -12,11 +12,8 @@ from twisted.logger import jsonFileLogObserver, textFileLogObserver
 from twisted.logger import Logger
 from zope.interface import provider
 
+import packets
 from NordicSniffer import *
-from NordicUartPacket import *
-from NordicSlipPacket import NordicSlipPacket
-from NordicSnifferPacket import *
-from BleLinkLayerPacket import *
 from PacketBuffer import *
 
 import urwid
@@ -58,7 +55,7 @@ class NerfLink():
         self.log = Logger(namespace="NerfLink")
         self.cnt = 0
         self.port = port
-        self._sniffer = NordicSniffer(port=port, callback=self.interact)
+        self._sniffer = NordicSniffer(port=port)
         self.setup_screen()
         self.setup_sniffer()
 
@@ -93,13 +90,17 @@ class NerfLink():
         pl = self.pktlist
 
         for pkt in self._sniffer.pbuf:
+            pl.append(pkt)
             self.cnt = self.cnt + 1
             self._pktsec.add_packet(EnhancedPacketBlock(pkt.data))
 
-        with open('test.pcapng', 'wb') as f:
-            f.write(self._pktsec.as_bytearray)
+    #    with open('test.pcapng', 'wb') as f:
+    #        f.write(self._pktsec.as_bytearray)
+        loop.set_alarm_in(1/30, self.update_screen)
 
-        #loop.set_alarm_in(1/30, self.update_screen)
+    def twisted_callback(self):
+        print("callback!")
+        scr.refresh()
 
     def run(self):
         self.loop.set_alarm_in(1/60, self.update_screen)
@@ -120,15 +121,6 @@ class NerfLink():
         # TODO: test if port exists?
         self._port = port_path
 
-    def interact(self):
-        sniffer = self._sniffer
-        c = scr.getch()
-        self._win.addstr(0, 0, "meh", curses.A_BOLD)
-        self._win.refresh()
-        if c != -1:
-            scr.addstr(str(c) + ' ')
-
-            scr.refresh()
 
 if __name__ == "__main__":
     nl = NerfLink('/dev/ttyUSB0')

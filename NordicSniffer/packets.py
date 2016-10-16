@@ -179,7 +179,7 @@ class BleLinkLayerPacket(Packet):
         return payload
 
 
-class NordicUartPacketIds(IntEnum):
+class UartPacketIds(IntEnum):
     REQ_FOLLOW = 0x00
     EVENT_FOLLOW = 0x01
     EVENT_CONNECT = 0x05
@@ -209,28 +209,28 @@ class UartPacket(Packet):
         if data is None:
             self._data = bytearray()
             self._payload = bytearray()
-            self._hlen = NordicUartPacket.HLEN_DEFAULT
-            self._protover = NordicUartPacket.PROTOVER_DEFAULT
+            self._hlen = UartPacket.HLEN_DEFAULT
+            self._protover = UartPacket.PROTOVER_DEFAULT
             self._count = 0
         else:
             self._data = bytearray(data)
-            self._hlen = data[NordicUartPacket.HLEN_OFFSET]
-            self.id = data[NordicUartPacket.ID_OFFSET]
+            self._hlen = data[UartPacket.HLEN_OFFSET]
+            self.id = data[UartPacket.ID_OFFSET]
             self._payload = data[self.hlen:]
-            self._protover = data[NordicUartPacket.PVER_OFFSET]
-            pc_offset = NordicUartPacket.PC_OFFSET
+            self._protover = data[UartPacket.PVER_OFFSET]
+            pc_offset = UartPacket.PC_OFFSET
             raw_pc = self._data[pc_offset:pc_offset+2]
             self._count = int.from_bytes(raw_pc, byteorder='little')
 
     def __repr__(self):
-        return "NordicUartPacket({})".format(self.data)
+        return "UartPacket({})".format(self.data)
 
     def __str__(self):
         packet_id = self.id
-        if packet_id == NordicUartPacketIds.EVENT_PACKET:
+        if packet_id == UartPacketIds.EVENT_PACKET:
             data = "[NRF_BLE_PACKET]"
             #data = NordicSnifferPacket(self.getPayload())
-        elif packet_id == NordicUartPacketIds.PING_RESP:
+        elif packet_id == UartPacketIds.PING_RESP:
             data = "[FW_VERSION = 0x{}]".format(self.payload.hex())
         else:
             data = "[{}]".format(self.payload.hex())
@@ -254,7 +254,7 @@ class UartPacket(Packet):
 
     @id.setter
     def id(self, pkt_type):
-        self._id = NordicUartPacketIds(pkt_type)
+        self._id = UartPacketIds(pkt_type)
 
     @property
     def payload(self):
@@ -292,25 +292,25 @@ class SlipPacket(Packet):
     re_slip_pkt = re.compile(SLIP_PKT_REGEX, re.DOTALL | re.MULTILINE)
 
     def __init__(self, data):
-        self.__init__(data)
+        super().__init__(data)
 
     @classmethod
     def find(cls, pbuf):
         """Consumes the head of the packet buffer and spits out a
-        sniffer packet that has had the NordicSlipPacket codes removed."""
-        packets = NordicSlipPacket._extract_packets(pbuf)
+        sniffer packet that has had the SlipPacket codes removed."""
+        packets = SlipPacket._extract_packets(pbuf)
         return packets
 
     @classmethod
     def _extract_packets(cls, pbuf):
         packets = []
-        m = NordicSlipPacket.re_slip_pkt.finditer(pbuf)
+        m = SlipPacket.re_slip_pkt.finditer(pbuf)
 
         new_end = None
         for pkt in m:
             new_end = pkt.end()
             unesc_pkt = cls._unescape_packet(pkt.group('packet'))
-            nsp = NordicSlipPacket(unesc_pkt)
+            nsp = SlipPacket(unesc_pkt)
             packets.append(nsp)
 
         # Remove processed data from packet buffer

@@ -1,13 +1,13 @@
 from urwid import (AttrWrap, BoxAdapter, Button, Columns, Frame, GridFlow, LineBox,
                    ListBox, Pile, SimpleFocusListWalker, Text)
-from NordicUartPacket import *
+from packets import UartPacket
 
 class PacketFrame(Frame):
     # Frame has a Columns header and a listbox.
     # Maybe total packet count as the footer?
 
     def __init__(self):
-        self.header = NordicUartPacketRow.get_header()
+        self.header = UartPacketRow.get_header()
         self.plb = PacketListBox()
     #    ba = BoxAdapter(AttrWrap(self.plb, 'packet'))
         super().__init__(self.plb, AttrWrap(self.header, 'packet_header'))
@@ -25,7 +25,7 @@ class PacketListBox(ListBox):
     def append(self, pkt):
         overage = len(self.body) - self.max_buffer
         del self.body[0:overage]
-        row = AttrWrap(NordicUartPacketRow(pkt), 'packet')
+        row = AttrWrap(UartPacketRow(pkt), 'packet')
         self.body.append(row)
 
 class PacketRow(Columns):
@@ -39,7 +39,7 @@ class PacketRow(Columns):
         # Detect packet type, return appropriate row.
         # factory method
 
-class NordicUartPacketRow(Columns):
+class UartPacketRow(Columns):
     divchars = 0
 
     @classmethod
@@ -52,8 +52,8 @@ class NordicUartPacketRow(Columns):
         return Columns(cols, dividechars=cls.divchars)
 
     def __init__(self, pkt):
-        if not isinstance(pkt, NordicUartPacket):
-            raise ValueError(u"{} doesn't derive from NordicUartPacket!".format(type(pkt)))
+        if not isinstance(pkt, UartPacket):
+            raise ValueError(u"{} doesn't derive from UartPacket!".format(type(pkt)))
 
         cols = [
             (16, Text(u"{:d}".format(pkt.pc))),

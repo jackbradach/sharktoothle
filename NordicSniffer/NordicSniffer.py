@@ -2,10 +2,7 @@ from twisted.internet import reactor, task
 from twisted.internet.serialport import SerialPort
 from twisted.protocols import basic
 from twisted.logger import Logger
-from NordicUartPacket import *
-from NordicSlipPacket import NordicSlipPacket
-from NordicSnifferPacket import *
-from BleLinkLayerPacket import *
+from packets import SnifferPacket, BleLinkLayerPacket, SlipPacket, UartPacket
 from PacketBuffer import *
 
 class NordicSniffer(basic.LineReceiver):
@@ -20,7 +17,6 @@ class NordicSniffer(basic.LineReceiver):
         self.port = port
         self.baud = baud
         self._log = Logger(namespace="NordicSniffer")
-        self._loop = task.LoopingCall(callback)
         SerialPort(self, self.port, reactor, baudrate=460800)
 
     def __repr__(self):
@@ -29,7 +25,6 @@ class NordicSniffer(basic.LineReceiver):
     def __str__(self):
         str_repr = ("<NordicSniffer; " +
                     "port={}>".format(self._port))
-
 
     def stop(self):
         reactor.stop()
@@ -43,8 +38,8 @@ class NordicSniffer(basic.LineReceiver):
         pass
 
     def scan(self):
-        pkt = NordicUartPacket()
-        pkt.id = NordicUartPacketIds.REQ_SCAN_CONT
+        pkt = UartPacket()
+        pkt.id = UartPacketIds.REQ_SCAN_CONT
         pkt.payload = []
         self._log.debug("SCAN!")
         reactor.callFromThread(self.send_ping)

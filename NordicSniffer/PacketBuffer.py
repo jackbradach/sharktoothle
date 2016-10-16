@@ -1,5 +1,4 @@
-from NordicSlipPacket import *
-from NordicUartPacket import *
+from packets import SlipPacket, UartPacket
 
 class PacketBuffer():
     in_buf = bytearray()
@@ -21,12 +20,10 @@ class PacketBuffer():
     def add(self, rcvd_data):
         pbuf = self.in_buf
         pbuf.extend(bytearray(rcvd_data))
-
         headroom = self.buffer_limit - len(pbuf)
         if headroom < 0:
             print("in_buf exceeds limit by {:d} bytes, trimming".format(-headroom))
             del pbuf[:-headroom]
-
         pkt_cnt = self._process_in_buf()
 
         return pkt_cnt
@@ -41,13 +38,13 @@ class PacketBuffer():
         return packet
 
     def _process_in_buf(self):
-        """Uses the NordicSlipPacket class to extract packets from the
-        in_buffer.  These will then be converted into NordicUart packets
+        """Uses the SlipPacket class to extract packets from the
+        in_buffer.  These will then be converted into UartPackets
         and stored in the out_buffer."""
-        packets = NordicSlipPacket.find(self.in_buf)
+        packets = SlipPacket.find(self.in_buf)
         uart_pkts = []
         for pkt in packets:
-            uart_pkt = NordicUartPacket(pkt.getData())
+            uart_pkt = UartPacket(pkt.data)
             uart_pkts.append(uart_pkt)
 
         self.out_buf.extend(uart_pkts)
