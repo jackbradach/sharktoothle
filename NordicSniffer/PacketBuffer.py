@@ -1,4 +1,4 @@
-from packets import SlipPacket, UartPacket
+from .packets import SlipPacket, UartPacket
 
 class PacketBuffer():
     in_buf = bytearray()

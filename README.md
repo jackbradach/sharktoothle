@@ -1,5 +1,5 @@
-# nerf-fiddytwo
-Python API for Nordic RF52 BLE sniffer + Wireshark dissector
+# SharktoothLE
+UI and packet bridge for Nordic RF52 BLE sniffer + Wireshark dissector
 
 Rewrite of the Adafruit/Nordic Bluetooth LE Sniffer API and packet dissector.
 
@@ -7,14 +7,14 @@ Goals:
  - Rewrite Nordic-supplied dissectors to work with the tip of Wireshark.
  - Rework Python bridge to create a named pipe and allow live streaming.
  - Make it as easy to forget the internal details as possible; I really want to be able to run something like "wireshark_ble" and be looking at a live stream in Wireshark with no further fuss.
- - Build and run in a Docker container?
- - Merge anything useful that comes of this back into the main branch so others can play with it.
 
 Current State:
  - Wireshark dissector updated to work with Wireshark 2.2.  This hasn't been tested extensively, but it opens the
    pcap files generated from the original version of the sniffer.
  - Dockerfile added to build and run Wireshark + BLE dissector in a container (w/GUI).
- - New Python API, based around Twisted is in-progress.  Currently can decode the UART, Sniffer, and BLE_LL packets.
+ - New Python API is based around Twisted and decodes packets correctly.
+ - Started writing a control script, it turned into a Urwid-based (ncurses) TUI.
+ - Creates pcapng format files.
  
 Real Soon Now (tm):
  - Feature parity with existing API (needs to be able to follow and capture BLE conversations)
