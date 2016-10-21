@@ -1,15 +1,14 @@
 from urwid import (AttrWrap, BoxAdapter, Button, Columns, Frame, GridFlow, LineBox,
                    ListBox, Pile, SimpleFocusListWalker, Text)
-from packets import UartPacket
+from NordicSniffer.packets import UartPacket
 
-class PacketFrame(Frame):
+class PacketView(BoxAdapter):
     # Frame has a Columns header and a listbox.
     # Maybe total packet count as the footer?
-
-    def __init__(self):
-        self.header = UartPacketRow.get_header()
+    def __init__(self, cls):
+        self.header = cls.header
         self.plb = PacketListBox()
-    #    ba = BoxAdapter(AttrWrap(self.plb, 'packet'))
+
         super().__init__(self.plb, AttrWrap(self.header, 'packet_header'))
 
     def append(self, pkt):
@@ -28,28 +27,28 @@ class PacketListBox(ListBox):
         row = AttrWrap(UartPacketRow(pkt), 'packet')
         self.body.append(row)
 
+
 class PacketRow(Columns):
     # Base class to split packet apart for showing in PacketListBox
-    def __init__(self, packet):
+    def __init__(self, cols, dividechars=0):
+        super().__init__(cols, dividechars)
         pass
 
-    @classmethod
-    def get_row(cls, packet):
-        pass
-        # Detect packet type, return appropriate row.
-        # factory method
+    @property
+    def header(self):
+        return None
 
-class UartPacketRow(Columns):
-    divchars = 0
+class UartPacketRow(PacketRow):
+    _divchars = 0
 
-    @classmethod
-    def get_header(cls):
+    @property
+    def header(self):
         cols = [
             (16, Text(u"Packet #")),
             (16, Text(u"Packet ID")),
             (16, Text(u"Payload Length"))
         ]
-        return Columns(cols, dividechars=cls.divchars)
+        return Columns(cols, dividechars=self._divchars)
 
     def __init__(self, pkt):
         if not isinstance(pkt, UartPacket):
@@ -62,7 +61,6 @@ class UartPacketRow(Columns):
         ]
 
         super().__init__(cols, dividechars=0)
-        #Columns(widget_list, dividechars=0, focus_column=None, min_width=1, box_columns=None)
 
 
     # Render like:

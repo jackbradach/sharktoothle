@@ -2,8 +2,11 @@ from twisted.internet import reactor, task
 from twisted.internet.serialport import SerialPort
 from twisted.protocols import basic
 from twisted.logger import Logger
-from packets import SnifferPacket, BleLinkLayerPacket, SlipPacket, UartPacket
-from PacketBuffer import *
+from .packets import SnifferPacket, BleLinkLayerPacket, SlipPacket, UartPacket
+from .PacketBuffer import *
+
+log = Logger(namespace="NordicSniffer")
+
 
 class NordicSniffer(basic.LineReceiver):
     # Default port is USB0, add detect and reconnect?  Twisted
@@ -16,7 +19,6 @@ class NordicSniffer(basic.LineReceiver):
         self._pbuf = PacketBuffer()
         self.port = port
         self.baud = baud
-        self._log = Logger(namespace="NordicSniffer")
         SerialPort(self, self.port, reactor, baudrate=460800)
 
     def __repr__(self):
