@@ -25,3 +25,6 @@ Maybe:
  - Support other pcap-based dissectors?
  - Support pcapng file format?
  - GUI for sending commands to the sniffer?
+
+Blocking:
+ - on hold until I need it to do more than it currently does.  If you got a use case, let me know!
