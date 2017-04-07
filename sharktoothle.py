@@ -14,7 +14,7 @@ from twisted.logger import jsonFileLogObserver, textFileLogObserver
 from twisted.logger import Logger
 from zope.interface import provider
 
-from NordicSniffer.NordicSniffer import *
+from NordicSniffer.sniffer import *
 from NordicSniffer.packets import *
 from NordicSniffer.pcapng import *
 
